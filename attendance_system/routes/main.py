@@ -31,6 +31,7 @@ from models import (
     LeaveRequest,
     db,
 )
+from security import hash_password, verify_password
 from services.analysis_service import (
     AnalysisServiceError,
     build_long_chart_data,
@@ -194,11 +195,11 @@ def authenticate_credentials(username, password):
         return None, None, "用户名和密码不能为空。"
 
     admin = Admin.query.filter_by(username=username).first()
-    if admin and admin.password == password:
+    if admin and verify_password(admin.password, password):
         return "admin", admin, None
 
     employee = Employee.query.filter_by(employee_id=username).first()
-    if employee and employee.password == password:
+    if employee and verify_password(employee.password, password):
         if employee.status != Employee.STATUS_ACTIVE:
             return None, None, "该员工已离职，无法登录。"
         return "employee", employee, None
@@ -988,7 +989,7 @@ def login():
             return render_template("login.html")
 
         admin = Admin.query.filter_by(username=username).first()
-        if admin and admin.password == password:
+        if admin and verify_password(admin.password, password):
             session.clear()
             session["user_role"] = "admin"
             session["username"] = admin.username
@@ -996,7 +997,7 @@ def login():
             return redirect(url_for("main.admin"))
 
         employee = Employee.query.filter_by(employee_id=username).first()
-        if employee and employee.password == password:
+        if employee and verify_password(employee.password, password):
             if employee.status != Employee.STATUS_ACTIVE:
                 flash("该员工已离职，无法登录。", "danger")
                 return render_template("login.html")
@@ -1437,12 +1438,12 @@ def employee_account_password():
 
         if not old_password or not new_password or not confirm_password:
             flash("原密码、新密码和确认新密码不能为空。", "danger")
-        elif employee.password != old_password:
+        elif not verify_password(employee.password, old_password):
             flash("原密码错误，无法修改。", "danger")
         elif new_password != confirm_password:
             flash("新密码和确认新密码不一致。", "danger")
         else:
-            employee.password = new_password
+            employee.password = hash_password(new_password)
             db.session.commit()
             flash("密码修改成功，请使用新密码登录。", "success")
             return redirect(url_for("main.employee_account_password"))
@@ -1469,12 +1470,12 @@ def api_employee_password():
 
     if not old_password or not new_password or not confirm_password:
         return api_response(False, "原密码、新密码和确认新密码不能为空。", status=400)
-    if employee.password != old_password:
+    if not verify_password(employee.password, old_password):
         return api_response(False, "原密码错误，无法修改。", status=400)
     if new_password != confirm_password:
         return api_response(False, "新密码和确认新密码不一致。", status=400)
 
-    employee.password = new_password
+    employee.password = hash_password(new_password)
     db.session.commit()
     return api_response(True, "员工密码修改成功。")
 
@@ -1595,7 +1596,7 @@ def admin_employee_create():
                         position=position,
                         contact=contact,
                         hire_date=hire_date,
-                        password=password,
+                        password=hash_password(password),
                         status=Employee.STATUS_ACTIVE,
                     )
                     db.session.add(employee)
@@ -1982,7 +1983,7 @@ def api_employee_create():
         position=position,
         contact=contact,
         hire_date=hire_date,
-        password=password,
+        password=hash_password(password),
         status=Employee.STATUS_ACTIVE,
     )
     db.session.add(employee)
@@ -2065,7 +2066,7 @@ def api_employee_update():
         password = str(password).strip()
         if not password:
             return api_response(False, "密码不能为空。", status=400)
-        employee.password = password
+        employee.password = hash_password(password)
     if position is not None:
         position = str(position).strip()
         if not position:
@@ -2126,7 +2127,7 @@ def admin_employee_update(employee_id):
         flash(f"员工 {employee.employee_id} 的密码、岗位和联系方式不能为空。", "danger")
         return redirect(url_for("main.admin_employee_list_page"))
 
-    employee.password = password
+    employee.password = hash_password(password)
     employee.position = position
     employee.contact = contact
 
@@ -2505,12 +2506,12 @@ def admin_account_page():
 
         if not old_password or not new_password or not confirm_password:
             flash("原密码、新密码和确认新密码不能为空。", "danger")
-        elif admin.password != old_password:
+        elif not verify_password(admin.password, old_password):
             flash("原密码错误，无法修改。", "danger")
         elif new_password != confirm_password:
             flash("新密码和确认新密码不一致。", "danger")
         else:
-            admin.password = new_password
+            admin.password = hash_password(new_password)
             db.session.commit()
             flash("密码修改成功，下次登录请使用新密码。", "success")
             return redirect(url_for("main.admin_account_page"))
@@ -2537,12 +2538,12 @@ def api_admin_account_password():
 
     if not old_password or not new_password or not confirm_password:
         return api_response(False, "原密码、新密码和确认新密码不能为空。", status=400)
-    if admin.password != old_password:
+    if not verify_password(admin.password, old_password):
         return api_response(False, "原密码错误，无法修改。", status=400)
     if new_password != confirm_password:
         return api_response(False, "新密码和确认新密码不一致。", status=400)
 
-    admin.password = new_password
+    admin.password = hash_password(new_password)
     db.session.commit()
     return api_response(True, "管理员密码修改成功。")
 

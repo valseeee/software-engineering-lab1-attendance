@@ -2,6 +2,8 @@
 
 这是一个 Flask 员工签到、请假审核、行为分析和刷脸打卡系统。项目默认支持 SQLite 本地开发，也支持通过 SQLAlchemy + PyMySQL 连接 MySQL，适合上传到 GitHub 后在 Windows + PyCharm 中运行。
 
+> 实验改进：Codex 已将新建及修改后的账号密码改为 Werkzeug 安全哈希存储，同时兼容原有明文账号迁移；验证命令为 `python -m unittest discover -s tests -v`。
+
 ## 功能概览
 
 - 首页刷脸打卡

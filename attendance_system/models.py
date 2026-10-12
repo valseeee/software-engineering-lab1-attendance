@@ -3,6 +3,8 @@ from datetime import datetime
 from sqlalchemy import inspect, text
 from flask_sqlalchemy import SQLAlchemy
 
+from security import hash_password
+
 
 db = SQLAlchemy()
 
@@ -235,5 +237,5 @@ def init_db():
 
     admin = Admin.query.filter_by(username="root").first()
     if admin is None:
-        db.session.add(Admin(username="root", password="123456"))
+        db.session.add(Admin(username="root", password=hash_password("123456")))
         db.session.commit()
