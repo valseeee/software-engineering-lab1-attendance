@@ -1,0 +1,55 @@
+{% extends "employee_layout.html" %}
+
+{% block title %}修改个人资料{% endblock %}
+
+{% block employee_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <div class="page-kicker">修改个人资料</div>
+                <h1 class="page-title">仅开放非敏感字段编辑</h1>
+                <p class="page-subtitle">本轮仅允许员工修改自己的联系方式，其他信息继续保持只读，由管理员统一维护。</p>
+            </div>
+            <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.employee_profile') }}">返回个人资料</a>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card form-card">
+    <div class="card-body p-4 p-md-5">
+        <form method="post" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label" for="employee_id">工号</label>
+                <input class="form-control" id="employee_id" type="text" value="{{ employee.employee_id }}" readonly>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="name">姓名</label>
+                <input class="form-control" id="name" type="text" value="{{ employee.name }}" readonly>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="position">工作岗位</label>
+                <input class="form-control" id="position" type="text" value="{{ employee.position or '-' }}" readonly>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="hire_date">入职时间</label>
+                <input class="form-control" id="hire_date" type="text" value="{{ employee.hire_date.strftime('%Y-%m-%d') if employee.hire_date else '-' }}" readonly>
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="contact">联系方式</label>
+                <input class="form-control" id="contact" name="contact" type="text" value="{{ employee.contact or '' }}" required>
+            </div>
+            <div class="col-12">
+                <div class="info-tile">
+                    <div class="label">字段权限说明</div>
+                    <div class="value">可修改：联系方式。不可修改：工号、姓名、出生日期、岗位、入职时间、证件照、在职状态、员工账号标识。</div>
+                </div>
+            </div>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary rounded-pill px-4" type="submit">保存联系方式</button>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.employee_profile') }}">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

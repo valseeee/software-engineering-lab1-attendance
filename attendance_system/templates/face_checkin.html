@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}人脸识别打卡{% endblock %}
+
+{% block content %}
+<div class="content-stack face-checkin-shell">
+    <div class="hero-card face-hero">
+        <div class="card-body p-4 p-md-5">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <div class="page-kicker">自助刷脸打卡</div>
+                    <h1 class="page-title">无需登录，识别成功后自动打卡</h1>
+                    <p class="page-subtitle">请正对摄像头并保持光线充足。后端只使用管理员维护的启用人脸模板进行匹配，不接受前端提交工号。</p>
+                </div>
+                <div class="face-time-card">
+                    <div class="metric-label">当前时间</div>
+                    <div class="metric-value" id="faceLiveClock">--:--:--</div>
+                    <div class="metric-hint" id="faceLiveDate">--</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="panel-card h-100">
+                <div class="card-body p-4 p-md-5">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">摄像头预览</h2>
+                            <div class="panel-caption">核心区域只用于预览、拍照和识别反馈</div>
+                        </div>
+                    </div>
+
+                    <div class="face-camera-frame">
+                        <video id="faceVideo" class="face-camera-video" autoplay playsinline muted></video>
+                        <canvas id="faceCanvas" class="d-none" width="640" height="480"></canvas>
+                        <div id="cameraEmpty" class="soft-empty face-camera-empty">
+                            <div class="quick-link-icon mb-3">CAM</div>
+                            <div class="fw-semibold mb-2">等待开启摄像头</div>
+                            <div class="text-muted">浏览器会请求摄像头权限，仅用于当前刷脸打卡识别。</div>
+                        </div>
+                    </div>
+
+                    <div class="helper-note mt-3">如果浏览器无法访问摄像头，请确认当前页面通过 localhost/127.0.0.1 或 HTTPS 打开，并允许摄像头权限。</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="panel-card mb-4">
+                <div class="card-body p-4">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">操作区域</h2>
+                            <div class="panel-caption">开启摄像头后自动识别，成功后自动进入考勤规则</div>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-3">
+                        <button id="startCameraBtn" class="btn btn-primary btn-lg rounded-pill" type="button">开启摄像头并自动识别</button>
+                        <button id="resetBtn" class="btn btn-outline-secondary rounded-pill" type="button">重置状态</button>
+                    </div>
+                    <div class="helper-note mt-3">识别成功后会自动打卡，不需要再次确认；识别失败、未绑定启用模板或员工已离职时不会写入考勤记录。</div>
+                </div>
+            </div>
+
+            <div class="panel-card mb-4">
+                <div class="card-body p-4">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">识别结果</h2>
+                            <div class="panel-caption">展示模板匹配状态与员工身份</div>
+                        </div>
+                    </div>
+                    <div id="recognitionStatus" class="info-tile">
+                        <div class="label">当前状态</div>
+                        <div class="value">待开启摄像头</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="card-body p-4">
+                    <div class="panel-header">
+                        <div>
+                            <h2 class="panel-title">打卡结果</h2>
+                            <div class="panel-caption">成功后写入现有 attendance 考勤记录</div>
+                        </div>
+                    </div>
+                    <div id="checkinResult" class="info-tile">
+                        <div class="label">打卡状态</div>
+                        <div class="value">尚未打卡</div>
+                    </div>
+                    <div class="helper-note mt-3">刷脸打卡复用现有迟到、早退、正常出勤和重复打卡判断。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(() => {
+    const video = document.getElementById("faceVideo");
+    const canvas = document.getElementById("faceCanvas");
+    const cameraEmpty = document.getElementById("cameraEmpty");
+    const startCameraBtn = document.getElementById("startCameraBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const recognitionStatus = document.getElementById("recognitionStatus");
+    const checkinResult = document.getElementById("checkinResult");
+    let stream = null;
+    let recognitionTimer = null;
+    let isRecognizing = false;
+    let checkinCompleted = false;
+
+    function setTile(tile, label, value, detail = "", tone = "") {
+        tile.className = `info-tile ${tone}`;
+        tile.innerHTML = `
+            <div class="label">${label}</div>
+            <div class="value">${value}</div>
+            ${detail ? `<div class="helper-note mt-2">${detail}</div>` : ""}
+        `;
+    }
+
+    async function startCamera() {
+        setTile(recognitionStatus, "当前状态", "正在请求摄像头权限", "请在浏览器弹窗中允许摄像头访问。");
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: "user",
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                },
+                audio: false,
+            });
+            video.srcObject = stream;
+            cameraEmpty.classList.add("d-none");
+            startCameraBtn.disabled = true;
+            setTile(recognitionStatus, "当前状态", "摄像头已开启", "系统会自动采集画面并识别，成功后自动打卡。", "face-result-ready");
+            startAutoRecognition();
+        } catch (error) {
+            setTile(recognitionStatus, "摄像头不可用", "无法开启摄像头", error.message || "请检查浏览器权限和设备连接。", "face-result-error");
+        }
+    }
+
+    function startAutoRecognition() {
+        if (recognitionTimer || checkinCompleted) {
+            return;
+        }
+        captureAndRecognize();
+        recognitionTimer = window.setInterval(captureAndRecognize, 3000);
+    }
+
+    function stopAutoRecognition() {
+        if (recognitionTimer) {
+            window.clearInterval(recognitionTimer);
+            recognitionTimer = null;
+        }
+    }
+
+    async function captureAndRecognize() {
+        if (!stream) {
+            setTile(recognitionStatus, "当前状态", "请先开启摄像头", "", "face-result-error");
+            return;
+        }
+        if (isRecognizing || checkinCompleted) {
+            return;
+        }
+
+        isRecognizing = true;
+        setTile(recognitionStatus, "识别状态", "正在识别", "正在提交当前画面到后端模板库进行匹配。", "face-result-ready");
+        setTile(checkinResult, "打卡状态", "等待识别结果");
+
+        const context = canvas.getContext("2d");
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL("image/jpeg", 0.85);
+
+        try {
+            const response = await fetch("{{ url_for('main.api_face_checkin_recognize') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ image_data: imageData }),
+            });
+            const payload = await response.json();
+
+            if (!payload.success) {
+                setTile(recognitionStatus, "识别失败", payload.message || "未匹配到员工", "系统会继续自动尝试识别，本次不会写入打卡记录。", "face-result-error");
+                setTile(checkinResult, "打卡状态", "未打卡", "识别失败时不会自动打卡。", "face-result-error");
+                return;
+            }
+
+            checkinCompleted = true;
+            stopAutoRecognition();
+            const data = payload.data;
+            const employee = data.employee;
+            const attendance = data.attendance;
+            const match = data.match;
+            setTile(
+                recognitionStatus,
+                "识别成功",
+                `${employee.name}（${employee.employee_id}）`,
+                `模板来源：${match.source_label}，匹配距离：${match.distance}`,
+                "face-result-success"
+            );
+            setTile(
+                checkinResult,
+                "打卡成功",
+                attendance.attendance_status || data.message,
+                `${data.message} 记录时间：${new Date(attendance.timestamp).toLocaleString()}`,
+                "face-result-success"
+            );
+        } catch (error) {
+            setTile(recognitionStatus, "请求失败", "无法完成识别", error.message || "请稍后重试。", "face-result-error");
+            setTile(checkinResult, "打卡状态", "未打卡", "后端未确认身份时不会写入考勤记录。", "face-result-error");
+        } finally {
+            isRecognizing = false;
+        }
+    }
+
+    function resetState() {
+        stopAutoRecognition();
+        checkinCompleted = false;
+        isRecognizing = false;
+        if (stream) {
+            startAutoRecognition();
+        }
+        setTile(recognitionStatus, "当前状态", stream ? "摄像头已开启，正在自动识别" : "待开启摄像头");
+        setTile(checkinResult, "打卡状态", "尚未打卡");
+    }
+
+    startCameraBtn.addEventListener("click", startCamera);
+    resetBtn.addEventListener("click", resetState);
+
+    function refreshFaceClock() {
+        const now = new Date();
+        document.getElementById("faceLiveClock").textContent = now.toLocaleTimeString("zh-CN", { hour12: false });
+        document.getElementById("faceLiveDate").textContent = now.toLocaleDateString("zh-CN", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            weekday: "long"
+        });
+    }
+
+    refreshFaceClock();
+    setInterval(refreshFaceClock, 1000);
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        startCameraBtn.disabled = true;
+        setTile(recognitionStatus, "摄像头不可用", "当前浏览器不支持摄像头采集", "请使用支持 getUserMedia 的现代浏览器。", "face-result-error");
+    }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,276 @@
+{% extends "employee_layout.html" %}
+
+{% block title %}员工工作台{% endblock %}
+
+{% block employee_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">员工工作台</div>
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h1 class="page-title">员工工作台</h1>
+                <p class="page-subtitle">欢迎回来，{{ employee.name }}。账号登录后保留请假、资料和密码等个人功能；员工打卡统一从首页刷脸打卡完成。</p>
+            </div>
+            <div class="score-pill">当前岗位：{{ employee.position or "暂未填写" }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="metric-label">今日状态</div>
+                <div class="metric-value">{{ today_summary.status }}</div>
+                <div class="metric-hint">系统基于打卡、请假和缺勤规则自动汇总。</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="metric-label">下一步</div>
+                <div class="metric-value">{{ today_summary.next_expected }}</div>
+                <div class="metric-hint">如需打卡，请返回首页使用刷脸识别。</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="metric-label">今日记录数</div>
+                <div class="metric-value">{{ today_summary.record_count }}</div>
+                <div class="metric-hint">上班、下班各最多形成一条主记录。</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <button class="metric-card border-0 w-100 text-start h-100 action-card" type="button" data-bs-toggle="modal" data-bs-target="#leaveRequestModal">
+            <div class="card-body p-4">
+                <div class="metric-label">次级操作</div>
+                <div class="metric-value">提交请假</div>
+                <div class="metric-hint">如今天不能正常出勤，可在这里发起申请。</div>
+            </div>
+        </button>
+    </div>
+</div>
+
+<div class="row g-4 align-items-stretch">
+    <div class="col-lg-4">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="panel-header">
+                    <h2 class="panel-title">员工基础信息</h2>
+                    <span class="status-badge status-active">{{ employee.status }}</span>
+                </div>
+                <div class="inline-stat-grid">
+                    <div class="info-tile">
+                        <div class="label">工号</div>
+                        <div class="value">{{ employee.employee_id }}</div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="label">姓名</div>
+                        <div class="value">{{ employee.name }}</div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="label">岗位</div>
+                        <div class="value">{{ employee.position or "暂未填写" }}</div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="label">联系方式</div>
+                        <div class="value">{{ employee.contact or "暂未填写" }}</div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="label">今日考勤状态</div>
+                        <div class="value">{{ today_summary.status }}</div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="label">下一步</div>
+                        <div class="value">{{ today_summary.next_expected }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="hero-card clock-panel">
+            <div class="card-body p-4 p-md-5 text-center">
+                <div class="page-kicker">刷脸打卡提示</div>
+                <h2 class="panel-title text-white mb-3">当前时间</h2>
+                <div class="clock-display" id="live-clock">--:--:--</div>
+                <div class="clock-date" id="live-date">--</div>
+                <div class="mt-3 helper-note text-white-50">
+                    账号手动打卡已停用。请使用首页刷脸打卡，系统仍会复用 09:00 和 17:00 的原有考勤判定规则。
+                </div>
+                <div class="d-grid gap-3 justify-content-center mt-4">
+                    <button
+                        class="btn btn-outline-light rounded-pill px-4"
+                        type="button"
+                        data-bs-toggle="modal"
+                        data-bs-target="#leaveRequestModal"
+                    >
+                        请假申请
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">最近打卡记录</h2>
+                <div class="panel-caption">展示最近 5 条打卡结果</div>
+            </div>
+        </div>
+
+        {% if recent_attendances %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>打卡类型</th>
+                            <th>考勤状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in recent_attendances %}
+                            <tr>
+                                <td>{{ record.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                                <td>
+                                    <span class="status-badge status-active">
+                                        {{ "上班打卡" if record.type == "clock_in" else "下班打卡" if record.type == "clock_out" else "打卡记录" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge {% if record.attendance_status in ['正常出勤', '正常下班'] %}status-approved{% elif record.attendance_status == '迟到' %}status-pending{% elif record.attendance_status == '早退' %}status-rejected{% else %}status-active{% endif %}">
+                                        {{ record.attendance_status or "-" }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">暂无打卡记录。员工打卡请使用首页刷脸打卡。</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">最近请假状态</h2>
+                <div class="panel-caption">帮助你快速确认最近提交的申请进度</div>
+            </div>
+            <a class="btn btn-outline-secondary btn-sm rounded-pill" href="{{ url_for('main.employee_leave_list') }}">查看全部</a>
+        </div>
+
+        {% if recent_leave_requests %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>状态</th>
+                            <th>审核人</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in recent_leave_requests %}
+                            <tr>
+                                <td>{{ item.start_time.strftime("%Y-%m-%d %H:%M") }}</td>
+                                <td>{{ item.end_time.strftime("%Y-%m-%d %H:%M") }}</td>
+                                <td>
+                                    <span class="status-badge {% if item.status == '待审批' %}status-pending{% elif item.status == '通过' %}status-approved{% else %}status-rejected{% endif %}">
+                                        {{ item.status }}
+                                    </span>
+                                </td>
+                                <td>{{ item.reviewed_by or "-" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">暂无请假申请记录，若有需要可直接使用“请假申请”入口发起申请。</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="leaveRequestModal" tabindex="-1" aria-labelledby="leaveRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="leaveRequestModalLabel">提交请假申请</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="leave_request">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="employee_id">工号</label>
+                            <input class="form-control" id="employee_id" name="employee_id" type="text" value="{{ employee.employee_id }}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="employee_name">员工姓名</label>
+                            <input class="form-control" id="employee_name" name="employee_name" type="text" value="{{ employee.name }}" readonly>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="start_time">请假开始时间</label>
+                            <input class="form-control" id="start_time" name="start_time" type="datetime-local" value="{{ request.form.get('start_time', '') }}" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="end_time">请假结束时间</label>
+                            <input class="form-control" id="end_time" name="end_time" type="datetime-local" value="{{ request.form.get('end_time', '') }}" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="reason">请假理由</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" placeholder="请输入请假理由" required>{{ request.form.get('reason', '') }}</textarea>
+                            <div class="helper-note mt-2">请尽量说明请假原因与时间安排，便于管理员快速审核。</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">提交申请</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function refreshClock() {
+        const now = new Date();
+        const timeText = now.toLocaleTimeString("zh-CN", { hour12: false });
+        const dateText = now.toLocaleDateString("zh-CN", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            weekday: "long"
+        });
+        document.getElementById("live-clock").textContent = timeText;
+        document.getElementById("live-date").textContent = dateText;
+    }
+
+    refreshClock();
+    setInterval(refreshClock, 1000);
+
+    {% if show_leave_modal %}
+        window.addEventListener("load", function () {
+            const modalElement = document.getElementById("leaveRequestModal");
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        });
+    {% endif %}
+</script>
+{% endblock %}

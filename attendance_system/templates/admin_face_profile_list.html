@@ -1,0 +1,76 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}人脸模板管理{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">Face Profiles</div>
+        <h1 class="page-title">人脸模板管理</h1>
+        <p class="page-subtitle">集中查看员工是否具备独立人脸模板，并维护后续无登录刷脸打卡使用的候选模板。证件照仍保留在员工资料中，识别只读取这里的独立模板记录。</p>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">员工模板状态</h2>
+                <div class="panel-caption">同一员工同一时间只建议保留一个启用模板</div>
+            </div>
+            <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.admin_employee_list_page') }}">返回员工列表</a>
+        </div>
+
+        {% if employees %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>员工状态</th>
+                            <th>模板状态</th>
+                            <th>启用来源</th>
+                            <th>记录数</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in employees %}
+                            {% set active_profile = active_face_profiles.get(employee.employee_id) %}
+                            <tr>
+                                <td class="fw-semibold">{{ employee.employee_id }}</td>
+                                <td>{{ employee.name }}</td>
+                                <td>
+                                    <span class="status-badge {% if employee.status == '在职' %}status-active{% else %}status-inactive{% endif %}">{{ employee.status }}</span>
+                                </td>
+                                <td>
+                                    {% if active_profile %}
+                                        <span class="status-badge status-approved">可用于候选</span>
+                                    {% else %}
+                                        <span class="status-badge status-pending">未启用</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if active_profile %}
+                                        {{ source_label(active_profile.source_type) }}
+                                        <div class="helper-note">{{ active_profile.source_type }}</div>
+                                    {% else %}
+                                        无
+                                    {% endif %}
+                                </td>
+                                <td>{{ face_profile_counts.get(employee.employee_id, 0) }}</td>
+                                <td>
+                                    <a class="btn btn-sm btn-primary rounded-pill px-3" href="{{ url_for('main.admin_employee_face_profile', employee_id=employee.employee_id) }}">管理模板</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">暂无员工记录，创建员工后可在这里维护人脸模板。</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

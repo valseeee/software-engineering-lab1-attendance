@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4 layout-shell">
+    <div class="col-xl-3 col-lg-4">
+        <div class="mobile-nav-strip">
+            {% for item in admin_nav_items %}
+                <a class="btn {% if active_endpoint == item.endpoint %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill btn-sm" href="{{ url_for(item.endpoint) }}">
+                    {{ item.title }}
+                </a>
+            {% endfor %}
+        </div>
+
+        <aside class="layout-sidebar">
+            <div class="surface-card sidebar-panel">
+                <div class="sidebar-header">
+                    <div class="sidebar-title">管理员导航</div>
+                    <div class="sidebar-name">{{ session.get("username") }}</div>
+                    <div class="sidebar-meta">统一后台入口与模块操作面板</div>
+                </div>
+                <div class="sidebar-links">
+                    {% for item in admin_nav_items %}
+                        <a class="sidebar-link {% if active_endpoint == item.endpoint %}active{% endif %}" href="{{ url_for(item.endpoint) }}">
+                            <span>{{ item.title }}</span>
+                            <span class="link-arrow">›</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div class="col-xl-9 col-lg-8">
+        <div class="content-stack">
+            {% block admin_content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

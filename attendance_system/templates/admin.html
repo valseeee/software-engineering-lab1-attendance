@@ -1,0 +1,127 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}管理后台{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">管理员后台</div>
+        <h1 class="page-title">系统运行概览</h1>
+        <p class="page-subtitle">欢迎，{{ session.get("username") }}。侧边栏负责模块导航，这里聚焦当前系统状态、待处理事项和关键提醒。</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="metric-label">员工总数</div>
+                <div class="metric-value">{{ dashboard_stats.total_employees }}</div>
+                <div class="metric-hint">系统已录入的员工档案数量。</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="metric-label">在职员工</div>
+                <div class="metric-value">{{ dashboard_stats.active_employees }}</div>
+                <div class="metric-hint">离职员工无法登录，也不会参与刷脸打卡候选。</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="metric-label">待审批请假</div>
+                <div class="metric-value">{{ dashboard_stats.pending_leaves }}</div>
+                <div class="metric-hint">建议优先处理，避免影响考勤判断。</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="metric-label">启用人脸模板</div>
+                <div class="metric-value">{{ dashboard_stats.active_face_templates }}</div>
+                <div class="metric-hint">后续无登录刷脸打卡只读取启用模板。</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="panel-card h-100">
+            <div class="card-body p-4">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">最近待审批事项</h2>
+                        <div class="panel-caption">仅展示最近 5 条待审批请假申请</div>
+                    </div>
+                    <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url_for('main.admin_leave_list', status='待审批') }}">去审核</a>
+                </div>
+
+                {% if recent_pending_leaves %}
+                    <div class="table-responsive">
+                        <table class="table data-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>员工</th>
+                                    <th>请假时间</th>
+                                    <th>理由</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in recent_pending_leaves %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">{{ item.employee.name if item.employee else "-" }}</div>
+                                            <div class="helper-note">{{ item.employee_id }}</div>
+                                        </td>
+                                        <td>
+                                            {{ item.start_time.strftime("%m-%d %H:%M") }} 至 {{ item.end_time.strftime("%m-%d %H:%M") }}
+                                        </td>
+                                        <td class="reason-preview">{{ item.reason[:24] }}{% if item.reason|length > 24 %}...{% endif %}</td>
+                                        <td><span class="status-badge status-pending">{{ item.status }}</span></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="soft-empty">当前没有待审批请假申请。</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="panel-card h-100">
+            <div class="card-body p-4">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">运行提醒</h2>
+                        <div class="panel-caption">关键业务边界和日常检查项</div>
+                    </div>
+                </div>
+                <div class="d-grid gap-3">
+                    <div class="info-tile">
+                        <div class="label">导航方式</div>
+                        <div class="value">请使用左侧侧边栏进入具体模块。</div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="label">人脸模板</div>
+                        <div class="value">证件照与识别模板独立保存，刷脸打卡只读取启用模板。</div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="label">权限边界</div>
+                        <div class="value">管理员维护数据，员工端只处理个人打卡、请假和资料。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

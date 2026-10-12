@@ -1,0 +1,76 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}账户管理{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">账户管理</div>
+        <h1 class="page-title">管理员账号信息与密码维护</h1>
+        <p class="page-subtitle">在这里查看当前管理员账号信息，并完成密码修改。页面结构与员工端密码页保持统一，减少操作心智负担。</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="metric-label">用户名</div>
+                <div class="metric-value">{{ admin.username }}</div>
+                <div class="metric-hint">当前登录后台的管理员身份。</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="metric-label">账号编号</div>
+                <div class="metric-value">{{ admin.id }}</div>
+                <div class="metric-hint">用于系统内部识别管理员记录。</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="metric-card h-100">
+            <div class="card-body p-4">
+                <div class="metric-label">安全建议</div>
+                <div class="metric-value">定期更新</div>
+                <div class="metric-hint">修改成功后，下次登录请使用新密码。</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-xl-8">
+        <div class="panel-card form-card">
+            <div class="card-body p-4 p-md-5">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">修改密码</h2>
+                        <div class="panel-caption">需要先验证原密码，再写入新的管理员密码</div>
+                    </div>
+                </div>
+                <form method="post" class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label" for="old_password">原密码</label>
+                        <input class="form-control" id="old_password" name="old_password" type="password" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="new_password">新密码</label>
+                        <input class="form-control" id="new_password" name="new_password" type="password" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="confirm_password">确认新密码</label>
+                        <input class="form-control" id="confirm_password" name="confirm_password" type="password" required>
+                    </div>
+                    <div class="col-12 d-flex gap-2 flex-wrap">
+                        <button class="btn btn-primary rounded-pill px-4" type="submit">保存新密码</button>
+                        <span class="helper-note align-self-center">保存成功后，下次登录请使用新密码。</span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

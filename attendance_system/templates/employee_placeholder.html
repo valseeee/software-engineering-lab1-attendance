@@ -1,0 +1,15 @@
+{% extends "employee_layout.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block employee_content %}
+<div class="card shadow-sm border-0">
+    <div class="card-body p-4 p-md-5">
+        <h1 class="h3 mb-3">{{ page_title }}</h1>
+        <p class="text-muted mb-4">{{ page_description }}</p>
+        <div class="alert alert-secondary mb-0" role="alert">
+            当前页面为员工端占位页，后续将在这里补充具体业务功能。
+        </div>
+    </div>
+</div>
+{% endblock %}

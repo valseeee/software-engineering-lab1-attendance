@@ -1,0 +1,36 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}分析报告详情{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <div class="page-kicker">报告详情</div>
+                <h1 class="page-title">分析报告详情</h1>
+                <p class="page-subtitle">查看单条分析结果的完整输出内容与关键指标。</p>
+            </div>
+            <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.admin_analysis_long') if analysis.type == 'long' else url_for('main.admin_analysis_short') }}">
+                {{ '返回长期分析' if analysis.type == 'long' else '返回短期分析' }}
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="inline-stat-grid">
+    <div class="info-tile"><div class="label">工号</div><div class="value">{{ analysis.employee_id }}</div></div>
+    <div class="info-tile"><div class="label">姓名</div><div class="value">{{ analysis.employee.name if analysis.employee else "-" }}</div></div>
+    <div class="info-tile"><div class="label">分析类型</div><div class="value">{{ analysis.type }}</div></div>
+    <div class="info-tile"><div class="label">生成时间</div><div class="value">{{ analysis.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</div></div>
+    <div class="info-tile"><div class="label">性格</div><div class="value">{{ analysis.personality }}</div></div>
+    <div class="info-tile"><div class="label">工作积极度 / 健康度</div><div class="value">{{ analysis.motivation }} / {{ analysis.health }}</div></div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="panel-header"><h2 class="panel-title">详细报告</h2></div>
+        <div class="report-block">{{ analysis.report_text }}</div>
+    </div>
+</div>
+{% endblock %}

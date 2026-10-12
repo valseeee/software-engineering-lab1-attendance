@@ -1,0 +1,164 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}员工出勤情况{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">出勤统计</div>
+        <h1 class="page-title">员工出勤情况</h1>
+        <p class="page-subtitle">按员工和日期范围查看出勤统计与每日明细。缺勤、请假和打卡状态沿用现有考勤摘要逻辑，不单独重写规则。</p>
+    </div>
+</div>
+
+<div class="panel-card form-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">筛选条件</h2>
+                <div class="panel-caption">支持按工号、姓名、岗位和日期范围筛选，单次最多 93 天</div>
+            </div>
+        </div>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label" for="employee_id">工号</label>
+                <input class="form-control" id="employee_id" name="employee_id" type="text" value="{{ filters.employee_id }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="name">姓名</label>
+                <input class="form-control" id="name" name="name" type="text" value="{{ filters.name }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="position">岗位</label>
+                <input class="form-control" id="position" name="position" type="text" value="{{ filters.position }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="start_date">开始日期</label>
+                <input class="form-control" id="start_date" name="start_date" type="date" value="{{ filters.start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="end_date">结束日期</label>
+                <input class="form-control" id="end_date" name="end_date" type="date" value="{{ filters.end_date }}">
+            </div>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary rounded-pill px-4" type="submit">应用筛选</button>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.admin_attendance_overview') }}">重置</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    {% for status in status_labels %}
+        <div class="col-sm-6 col-xl-2">
+            <div class="metric-card h-100">
+                <div class="card-body p-4">
+                    <div class="metric-label">{{ status }}</div>
+                    <div class="metric-value">{{ totals.get(status, 0) }}</div>
+                    <div class="metric-hint">当前筛选范围汇总</div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">汇总统计</h2>
+                <div class="panel-caption">{{ start_date.strftime("%Y-%m-%d") }} 至 {{ end_date.strftime("%Y-%m-%d") }}，共 {{ overview_rows|length }} 名员工</div>
+            </div>
+        </div>
+
+        {% if overview_rows %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>岗位</th>
+                            <th>正常出勤</th>
+                            <th>迟到</th>
+                            <th>早退</th>
+                            <th>正常下班</th>
+                            <th>缺勤</th>
+                            <th>请假</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in overview_rows %}
+                            <tr>
+                                <td class="fw-semibold">{{ row.employee.employee_id }}</td>
+                                <td>{{ row.employee.name }}</td>
+                                <td>{{ row.employee.position or "未设置" }}</td>
+                                <td><span class="status-badge status-approved">{{ row.counts.get("正常出勤", 0) }}</span></td>
+                                <td><span class="status-badge status-pending">{{ row.counts.get("迟到", 0) }}</span></td>
+                                <td><span class="status-badge status-rejected">{{ row.counts.get("早退", 0) }}</span></td>
+                                <td><span class="status-badge status-approved">{{ row.counts.get("正常下班", 0) }}</span></td>
+                                <td><span class="status-badge status-inactive">{{ row.counts.get("缺勤", 0) }}</span></td>
+                                <td><span class="status-badge status-active">{{ row.counts.get("请假", 0) }}</span></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">当前筛选条件下没有员工记录。</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">每日明细</h2>
+                <div class="panel-caption">展示每名员工在日期范围内每天的打卡、请假或缺勤状态</div>
+            </div>
+        </div>
+
+        {% if overview_rows %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>岗位</th>
+                            <th>上班打卡</th>
+                            <th>下班打卡</th>
+                            <th>状态</th>
+                            <th>记录数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in overview_rows %}
+                            {% for detail in row.details %}
+                                <tr>
+                                    <td>{{ detail.date.strftime("%Y-%m-%d") }}</td>
+                                    <td class="fw-semibold">{{ row.employee.employee_id }}</td>
+                                    <td>{{ row.employee.name }}</td>
+                                    <td>{{ row.employee.position or "未设置" }}</td>
+                                    <td>{{ detail.clock_in_time.strftime("%H:%M:%S") if detail.clock_in_time else "-" }}</td>
+                                    <td>{{ detail.clock_out_time.strftime("%H:%M:%S") if detail.clock_out_time else "-" }}</td>
+                                    <td>
+                                        {% for status in detail.statuses %}
+                                            <span class="status-badge {% if status in ['正常出勤', '正常下班'] %}status-approved{% elif status == '迟到' %}status-pending{% elif status in ['早退', '缺勤'] %}status-rejected{% elif status == '请假' %}status-active{% else %}status-pending{% endif %}">{{ status }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>{{ detail.record_count }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">暂无明细可展示。</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

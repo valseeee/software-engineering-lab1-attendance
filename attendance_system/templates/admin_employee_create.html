@@ -1,0 +1,81 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}员工数据录入与账号发放{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">员工录入</div>
+        <h1 class="page-title">员工数据录入与账号发放</h1>
+        <p class="page-subtitle">创建员工档案后，系统会自动生成 9 位工号，并把入职日期转换为初始密码。页面重点突出上传、录入和账号生成结果。</p>
+    </div>
+</div>
+
+{% if success_info %}
+    <div class="panel-card border border-success-subtle">
+        <div class="card-body p-4">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title text-success-emphasis">账号发放成功</h2>
+                    <div class="panel-caption">员工账号已经生成，可立即交付使用</div>
+                </div>
+                <span class="status-badge status-approved">已生成</span>
+            </div>
+                <div class="inline-stat-grid">
+                    <div class="info-tile"><div class="label">员工姓名</div><div class="value">{{ success_info.name }}</div></div>
+                    <div class="info-tile"><div class="label">工号</div><div class="value">{{ success_info.employee_id }}</div></div>
+                    <div class="info-tile"><div class="label">登录账号</div><div class="value">{{ success_info.employee_id }}</div></div>
+                    <div class="info-tile"><div class="label">初始密码</div><div class="value">{{ success_info.password }}</div></div>
+                </div>
+            </div>
+        </div>
+{% endif %}
+
+<div class="panel-card form-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">录入表单</h2>
+                <div class="panel-caption">先完成必填字段，再上传证件照并提交</div>
+            </div>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="row g-4">
+            <div class="col-md-6">
+                <label class="form-label" for="employee_id">工号</label>
+                <input class="form-control" id="employee_id" name="employee_id" type="text" value="{{ next_employee_id }}" readonly>
+                <div class="helper-note mt-2">系统自动按 9 位递增生成。</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="photo">证件照</label>
+                <input class="form-control" id="photo" name="photo" type="file" accept=".jpg,.jpeg,.png,.webp" required>
+                <div class="helper-note mt-2">支持 jpg、jpeg、png、webp 格式。</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="name">姓名</label>
+                <input class="form-control" id="name" name="name" type="text" value="{{ form_data.get('name', '') }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="birth_date">出生日期</label>
+                <input class="form-control" id="birth_date" name="birth_date" type="date" value="{{ form_data.get('birth_date', '') }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="position">工作岗位</label>
+                <input class="form-control" id="position" name="position" type="text" value="{{ form_data.get('position', '') }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="contact">联系方式</label>
+                <input class="form-control" id="contact" name="contact" type="text" value="{{ form_data.get('contact', '') }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="hire_date">入职时间</label>
+                <input class="form-control" id="hire_date" name="hire_date" type="date" value="{{ form_data.get('hire_date', '') }}" required>
+                <div class="helper-note mt-2">提交后会自动生成初始密码：YYYYMMDD。</div>
+            </div>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary rounded-pill px-4" type="submit">保存并生成账号</button>
+                <span class="helper-note align-self-center">创建完成后可通过左侧“员工列表管理”继续维护资料和状态。</span>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

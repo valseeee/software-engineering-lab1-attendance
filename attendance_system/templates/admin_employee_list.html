@@ -1,0 +1,151 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}员工列表管理{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">员工管理</div>
+        <h1 class="page-title">员工列表与状态维护</h1>
+        <p class="page-subtitle">支持按工号、姓名、岗位和状态筛选，并可直接维护密码、岗位、联系方式、证件照和离职状态。危险操作会保持明显区分。</p>
+    </div>
+</div>
+
+<div class="panel-card form-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">筛选条件</h2>
+                <div class="panel-caption">快速定位需要处理的员工记录</div>
+            </div>
+        </div>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" for="employee_id">工号</label>
+                <input class="form-control" id="employee_id" name="employee_id" type="text" value="{{ filters.employee_id }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="name">姓名</label>
+                <input class="form-control" id="name" name="name" type="text" value="{{ filters.name }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="position">岗位</label>
+                <input class="form-control" id="position" name="position" type="text" value="{{ filters.position }}" placeholder="支持手动输入岗位名称">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="status">状态</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">全部状态</option>
+                    {% for status in status_options %}
+                        <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary rounded-pill px-4" type="submit">应用筛选</button>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.admin_employee_list_page') }}">重置</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="panel-header">
+    <div>
+        <h2 class="panel-title">员工记录</h2>
+        <div class="panel-caption">共 {{ employees|length }} 人</div>
+    </div>
+</div>
+
+{% if employees %}
+    <div class="d-grid gap-4">
+        {% for employee in employees %}
+            <div class="panel-card">
+                <div class="card-body p-4">
+                    <div class="inline-stat-grid mb-4">
+                        <div class="info-tile"><div class="label">工号</div><div class="value">{{ employee.employee_id }}</div></div>
+                        <div class="info-tile"><div class="label">姓名</div><div class="value">{{ employee.name }}</div></div>
+                        <div class="info-tile"><div class="label">状态</div><div class="value"><span class="status-badge {% if employee.status == '在职' %}status-active{% else %}status-inactive{% endif %}">{{ employee.status }}</span></div></div>
+                        <div class="info-tile"><div class="label">当前岗位</div><div class="value">{{ employee.position or "未设置" }}</div></div>
+                        <div class="info-tile">
+                            <div class="label">人脸模板</div>
+                            <div class="value">
+                                {% set active_face_profile = active_face_profiles.get(employee.employee_id) %}
+                                {% if active_face_profile %}
+                                    <span class="status-badge status-approved">已生成</span>
+                                    <div class="helper-note mt-2">当前来源：{{ face_source_labels.get(active_face_profile.source_type, active_face_profile.source_type) }}</div>
+                                {% else %}
+                                    <span class="status-badge status-pending">未生成</span>
+                                {% endif %}
+                                <div class="helper-note mt-2">模板记录：{{ face_profile_counts.get(employee.employee_id, 0) }} 个</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" action="{{ url_for('main.admin_employee_update', employee_id=employee.employee_id) }}" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label" for="employee_id_{{ employee.employee_id }}">工号</label>
+                            <input class="form-control" id="employee_id_{{ employee.employee_id }}" name="employee_id" type="text" value="{{ employee.employee_id }}" readonly>
+                            <div class="helper-note mt-2">工号为系统生成字段，仅展示，不允许修改。</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="password_{{ employee.employee_id }}">登录密码</label>
+                            <input class="form-control" id="password_{{ employee.employee_id }}" name="password" type="text" value="{{ employee.password }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="position_{{ employee.employee_id }}">岗位</label>
+                            <input class="form-control" id="position_{{ employee.employee_id }}" name="position" type="text" value="{{ employee.position or '' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="contact_{{ employee.employee_id }}">联系方式</label>
+                            <input class="form-control" id="contact_{{ employee.employee_id }}" name="contact" type="text" value="{{ employee.contact or '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="photo_{{ employee.employee_id }}">修改证件照</label>
+                            <input class="form-control" id="photo_{{ employee.employee_id }}" name="photo" type="file" accept=".jpg,.jpeg,.png,.webp">
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-tile py-3">
+                                <div class="label">当前证件照路径</div>
+                                <div class="value small">{{ employee.photo_path or "未上传" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex flex-wrap gap-2">
+                            <button class="btn btn-primary rounded-pill px-4" type="submit">保存修改</button>
+                            <a
+                                class="btn btn-outline-primary rounded-pill px-4"
+                                href="{{ url_for('main.admin_employee_face_profile', employee_id=employee.employee_id) }}"
+                            >
+                                人脸模板管理
+                            </a>
+                            <button
+                                class="btn btn-outline-primary rounded-pill px-4"
+                                type="submit"
+                                formaction="{{ url_for('main.admin_employee_face_template_create', employee_id=employee.employee_id) }}"
+                                formenctype="application/x-www-form-urlencoded"
+                                formnovalidate
+                            >
+                                从证件照生成初始人脸模板
+                            </button>
+                            {% if employee.status == '在职' %}
+                                <button
+                                    class="btn btn-outline-danger rounded-pill px-4"
+                                    type="submit"
+                                    formaction="{{ url_for('main.admin_employee_deactivate', employee_id=employee.employee_id) }}"
+                                    formenctype="application/x-www-form-urlencoded"
+                                    formnovalidate
+                                >
+                                    标记离职
+                                </button>
+                            {% else %}
+                                <button class="btn btn-outline-secondary rounded-pill px-4" type="button" disabled>已离职</button>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="soft-empty">当前筛选条件下没有找到员工记录。</div>
+{% endif %}
+{% endblock %}

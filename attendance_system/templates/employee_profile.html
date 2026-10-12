@@ -1,0 +1,105 @@
+{% extends "employee_layout.html" %}
+
+{% block title %}个人资料{% endblock %}
+
+{% block employee_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <div class="page-kicker">个人资料</div>
+                <h1 class="page-title">查看你的基础信息</h1>
+                <p class="page-subtitle">资料展示拆分为证件照、个人头像和基础字段。证件照继续由管理员维护，员工只能更新联系方式与个人头像。</p>
+            </div>
+            <a class="btn btn-primary rounded-pill px-4" href="{{ url_for('main.employee_profile_edit') }}">修改联系方式</a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="panel-card h-100">
+            <div class="card-body p-4">
+                <div class="panel-header">
+                    <h2 class="panel-title">个人头像</h2>
+                    <span class="panel-caption">可自行上传</span>
+                </div>
+                <div class="avatar-frame text-center">
+                    {% if avatar_url %}
+                        <img src="{{ avatar_url }}" alt="个人头像" class="avatar-preview mx-auto mb-3">
+                    {% else %}
+                        <div class="default-avatar mx-auto mb-3">默认头像</div>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('main.employee_avatar_upload') }}" enctype="multipart/form-data" class="d-grid gap-3">
+                        <input class="form-control" name="avatar" type="file" accept=".jpg,.jpeg,.png,.webp" required>
+                        <button class="btn btn-outline-primary rounded-pill" type="submit">上传 / 更换头像</button>
+                    </form>
+                    <div class="helper-note mt-3">个人头像仅用于员工端展示，不会覆盖管理员录入的证件照。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="panel-card h-100">
+            <div class="card-body p-4">
+                <div class="panel-header">
+                    <h2 class="panel-title">证件照</h2>
+                    <span class="status-badge status-pending">只读</span>
+                </div>
+                <div class="photo-frame text-center">
+                    {% if certificate_photo_url %}
+                        <img src="{{ certificate_photo_url }}" alt="证件照" class="img-fluid rounded-4 mb-3">
+                    {% else %}
+                        <div class="soft-empty py-5 mb-3">暂无证件照</div>
+                    {% endif %}
+                    <div class="helper-note">证件照由管理员录入，员工不可修改。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="panel-card h-100">
+            <div class="card-body p-4">
+                <div class="panel-header">
+                    <h2 class="panel-title">资料说明</h2>
+                </div>
+                <div class="d-grid gap-3">
+                    <div class="info-tile">
+                        <div class="label">当前开放修改</div>
+                        <div class="value">联系方式、个人头像</div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="label">继续保持只读</div>
+                        <div class="value">工号、姓名、出生日期、岗位、入职时间、证件照、在职状态</div>
+                    </div>
+                    <div class="info-tile">
+                        <div class="label">安全提示</div>
+                        <div class="value">如需改密码，请前往“修改密码”页面单独操作。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">基础资料</h2>
+                <div class="panel-caption">以下字段仅展示当前登录员工自己的数据</div>
+            </div>
+        </div>
+        <div class="inline-stat-grid">
+            <div class="info-tile"><div class="label">工号</div><div class="value">{{ employee.employee_id }}</div></div>
+            <div class="info-tile"><div class="label">姓名</div><div class="value">{{ employee.name }}</div></div>
+            <div class="info-tile"><div class="label">出生日期</div><div class="value">{{ employee.birth_date.strftime("%Y-%m-%d") if employee.birth_date else "-" }}</div></div>
+            <div class="info-tile"><div class="label">工作岗位</div><div class="value">{{ employee.position or "-" }}</div></div>
+            <div class="info-tile"><div class="label">联系方式</div><div class="value">{{ employee.contact or "-" }}</div></div>
+            <div class="info-tile"><div class="label">入职时间</div><div class="value">{{ employee.hire_date.strftime("%Y-%m-%d") if employee.hire_date else "-" }}</div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

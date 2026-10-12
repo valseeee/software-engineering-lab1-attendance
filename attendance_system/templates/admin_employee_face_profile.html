@@ -1,0 +1,173 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}员工人脸模板管理{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">Face Profile</div>
+        <h1 class="page-title">{{ employee.name }} 的人脸模板管理</h1>
+        <p class="page-subtitle">这里维护独立于证件照的人脸识别模板。后续无登录刷脸打卡只应读取启用的人脸模板记录，不直接使用员工资料里的证件照字段。</p>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">员工与当前启用状态</h2>
+                <div class="panel-caption">工号 {{ employee.employee_id }}</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.admin_face_profile_list') }}">模板总览</a>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.admin_employee_list_page') }}">员工列表</a>
+            </div>
+        </div>
+
+        <div class="inline-stat-grid">
+            <div class="info-tile">
+                <div class="label">员工姓名</div>
+                <div class="value">{{ employee.name }}</div>
+            </div>
+            <div class="info-tile">
+                <div class="label">员工状态</div>
+                <div class="value"><span class="status-badge {% if employee.status == '在职' %}status-active{% else %}status-inactive{% endif %}">{{ employee.status }}</span></div>
+            </div>
+            <div class="info-tile">
+                <div class="label">证件照路径</div>
+                <div class="value small">{{ employee.photo_path or "未上传" }}</div>
+                <div class="helper-note mt-2">证件照仅作为员工资料保存，不直接作为识别模板。</div>
+            </div>
+            <div class="info-tile">
+                <div class="label">当前启用模板</div>
+                <div class="value">
+                    {% if active_face_profile %}
+                        <span class="status-badge status-approved">已启用</span>
+                        <div class="helper-note mt-2">{{ source_label(active_face_profile.source_type) }} / {{ active_face_profile.source_type }}</div>
+                    {% else %}
+                        <span class="status-badge status-pending">暂无启用模板</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="panel-card h-100 face-action-card">
+            <div class="card-body p-4">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">从证件照生成初始模板</h2>
+                        <div class="panel-caption">复制证件照文件，生成独立模板记录并设为启用</div>
+                    </div>
+                </div>
+                <p class="helper-note">该操作不会覆盖或修改 <code>employee.photo_path</code>。如果已有启用模板，旧模板会自动转为停用，新模板成为后续刷脸候选。</p>
+                <form method="post" action="{{ url_for('main.admin_employee_face_template_create', employee_id=employee.employee_id) }}">
+                    <button class="btn btn-primary rounded-pill px-4" type="submit" {% if not employee.photo_path %}disabled{% endif %}>从证件照复制生成模板</button>
+                    {% if not employee.photo_path %}
+                        <div class="helper-note mt-3 text-danger">该员工暂无证件照，无法生成初始模板。</div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="panel-card h-100 face-action-card">
+            <div class="card-body p-4">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">上传新的人脸模板</h2>
+                        <div class="panel-caption">写入独立模板目录，不覆盖员工证件照</div>
+                    </div>
+                </div>
+                <form method="post" enctype="multipart/form-data" action="{{ url_for('main.admin_employee_face_profile_upload', employee_id=employee.employee_id) }}" class="d-grid gap-3">
+                    <div>
+                        <label class="form-label" for="face_template">模板图片</label>
+                        <input class="form-control" id="face_template" name="face_template" type="file" accept=".jpg,.jpeg,.png,.webp" required>
+                        <div class="helper-note mt-2">仅支持 jpg、jpeg、png、webp，大小不超过 {{ (face_template_max_size // 1024 // 1024) }}MB。</div>
+                    </div>
+                    <button class="btn btn-primary rounded-pill px-4" type="submit">上传并设为启用模板</button>
+                </form>
+                <form method="post" action="{{ url_for('main.admin_employee_face_profile_camera_placeholder', employee_id=employee.employee_id) }}" class="mt-3">
+                    <button class="btn btn-outline-secondary rounded-pill px-4" type="submit">摄像头采集接口预留</button>
+                </form>
+                <div class="helper-note mt-3">上传成功后会成为当前启用模板，旧启用模板会自动转为停用。</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">模板记录</h2>
+                <div class="panel-caption">共 {{ face_profiles|length }} 条，启用记录将作为后续刷脸打卡候选模板</div>
+            </div>
+        </div>
+
+        {% if face_profiles %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>预览</th>
+                            <th>来源</th>
+                            <th>路径</th>
+                            <th>创建时间</th>
+                            <th>更新时间</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profile in face_profiles %}
+                            <tr>
+                                <td>
+                                    {% if profile.source_image_path %}
+                                        <img class="face-template-thumb" src="{{ url_for('main.uploaded_file', filename=profile.source_image_path.replace('uploads/', '')) }}" alt="人脸模板预览">
+                                    {% else %}
+                                        <span class="helper-note">无图片</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">{{ source_label(profile.source_type) }}</div>
+                                    <div class="helper-note">{{ profile.source_type }}</div>
+                                </td>
+                                <td class="small">{{ profile.source_image_path }}</td>
+                                <td>{{ profile.created_at.strftime("%Y-%m-%d %H:%M") if profile.created_at else "-" }}</td>
+                                <td>{{ profile.updated_at.strftime("%Y-%m-%d %H:%M") if profile.updated_at else "-" }}</td>
+                                <td>
+                                    {% if profile.is_active %}
+                                        <span class="status-badge status-approved">启用中</span>
+                                    {% else %}
+                                        <span class="status-badge status-inactive">已停用</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        {% if profile.is_active %}
+                                            <form method="post" action="{{ url_for('main.admin_face_profile_deactivate', profile_id=profile.id) }}">
+                                                <button class="btn btn-sm btn-outline-danger rounded-pill px-3" type="submit">停用</button>
+                                            </form>
+                                        {% else %}
+                                            <form method="post" action="{{ url_for('main.admin_face_profile_activate', profile_id=profile.id) }}">
+                                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3" type="submit">设为当前启用</button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">该员工暂无人脸模板。可以先从证件照复制生成，或上传一张独立模板图片。</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

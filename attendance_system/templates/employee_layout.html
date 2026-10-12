@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4 layout-shell">
+    <div class="col-xl-3 col-lg-4">
+        <div class="mobile-nav-strip">
+            {% for item in employee_nav_items %}
+                <a class="btn {% if active_endpoint == item.endpoint %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill btn-sm" href="{{ url_for(item.endpoint) }}">
+                    {{ item.title }}
+                </a>
+            {% endfor %}
+            <a class="btn btn-outline-danger rounded-pill btn-sm" href="{{ url_for('main.logout') }}">退出</a>
+        </div>
+
+        <aside class="layout-sidebar">
+            <div class="surface-card sidebar-panel">
+                <div class="sidebar-header">
+                    <div class="sidebar-title">员工导航</div>
+                    <div class="sidebar-name">{{ session.get("employee_name") or session.get("employee_id") }}</div>
+                    <div class="sidebar-meta">个人工作台、请假记录与账户设置</div>
+                </div>
+                <div class="sidebar-links">
+                    {% for item in employee_nav_items %}
+                        <a class="sidebar-link {% if active_endpoint == item.endpoint %}active{% endif %}" href="{{ url_for(item.endpoint) }}">
+                            <span>{{ item.title }}</span>
+                            <span class="link-arrow">›</span>
+                        </a>
+                    {% endfor %}
+                    <a class="sidebar-link text-danger" href="{{ url_for('main.logout') }}">
+                        <span>退出登录</span>
+                        <span class="link-arrow">›</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div class="col-xl-9 col-lg-8">
+        <div class="content-stack">
+            {% block employee_content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

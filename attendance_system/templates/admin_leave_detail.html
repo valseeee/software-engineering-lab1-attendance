@@ -1,0 +1,37 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}请假详情{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <div class="page-kicker">请假详情</div>
+                <h1 class="page-title">请假申请完整信息</h1>
+                <p class="page-subtitle">查看单条请假记录的完整信息与审核状态。</p>
+            </div>
+            <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.admin_leave_list') }}">返回请假审核列表</a>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="inline-stat-grid mb-4">
+            <div class="info-tile"><div class="label">工号</div><div class="value">{{ leave_request.employee_id }}</div></div>
+            <div class="info-tile"><div class="label">姓名</div><div class="value">{{ leave_request.employee.name if leave_request.employee else "-" }}</div></div>
+            <div class="info-tile"><div class="label">岗位</div><div class="value">{{ leave_request.employee.position if leave_request.employee and leave_request.employee.position else "-" }}</div></div>
+            <div class="info-tile"><div class="label">开始时间</div><div class="value">{{ leave_request.start_time.strftime("%Y-%m-%d %H:%M:%S") }}</div></div>
+            <div class="info-tile"><div class="label">结束时间</div><div class="value">{{ leave_request.end_time.strftime("%Y-%m-%d %H:%M:%S") }}</div></div>
+            <div class="info-tile"><div class="label">当前状态</div><div class="value"><span class="status-badge {% if leave_request.status == '待审批' %}status-pending{% elif leave_request.status == '通过' %}status-approved{% else %}status-rejected{% endif %}">{{ leave_request.status }}</span></div></div>
+            <div class="info-tile"><div class="label">提交时间</div><div class="value">{{ leave_request.created_at.strftime("%Y-%m-%d %H:%M:%S") if leave_request.created_at else "-" }}</div></div>
+            <div class="info-tile"><div class="label">审核时间</div><div class="value">{{ leave_request.reviewed_at.strftime("%Y-%m-%d %H:%M:%S") if leave_request.reviewed_at else "-" }}</div></div>
+            <div class="info-tile"><div class="label">审核人</div><div class="value">{{ leave_request.reviewed_by or "-" }}</div></div>
+        </div>
+
+        <div class="panel-header"><h2 class="panel-title">请假理由</h2></div>
+        <div class="report-block">{{ leave_request.reason }}</div>
+    </div>
+</div>
+{% endblock %}

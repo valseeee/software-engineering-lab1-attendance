@@ -1,0 +1,134 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}请假审核管理{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">请假审核</div>
+        <h1 class="page-title">请假审核管理</h1>
+        <p class="page-subtitle">查看员工请假申请、按条件筛选，并对待审批记录执行通过或拒绝操作。待审批与已审核记录在视觉上会有更明确区分。</p>
+    </div>
+</div>
+
+<div class="panel-card form-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">筛选条件</h2>
+                <div class="panel-caption">支持按工号、姓名、状态和时间范围筛选</div>
+            </div>
+        </div>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label" for="employee_id">工号</label>
+                <input class="form-control" id="employee_id" name="employee_id" type="text" value="{{ filters.employee_id }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="name">姓名</label>
+                <input class="form-control" id="name" name="name" type="text" value="{{ filters.name }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="status">状态</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">全部状态</option>
+                    {% for status in status_options %}
+                        <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="start_date_from">开始时间范围</label>
+                <input class="form-control" id="start_date_from" name="start_date_from" type="date" value="{{ filters.start_date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="end_date_to">结束时间范围</label>
+                <input class="form-control" id="end_date_to" name="end_date_to" type="date" value="{{ filters.end_date_to }}">
+            </div>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary rounded-pill px-4" type="submit">应用筛选</button>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.admin_leave_list') }}">重置</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">请假申请列表</h2>
+                <div class="panel-caption">共 {{ leave_requests|length }} 条</div>
+            </div>
+        </div>
+
+        {% if leave_requests %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>岗位</th>
+                            <th>请假开始</th>
+                            <th>请假结束</th>
+                            <th>理由</th>
+                            <th>状态</th>
+                            <th>提交时间</th>
+                            <th>审核时间</th>
+                            <th>审核人</th>
+                            <th class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in leave_requests %}
+                            <tr class="{% if item.status == '待审批' %}leave-row-pending{% else %}leave-row-reviewed{% endif %}">
+                                <td>{{ item.employee_id }}</td>
+                                <td>{{ item.employee.name if item.employee else "-" }}</td>
+                                <td>{{ item.employee.position if item.employee and item.employee.position else "-" }}</td>
+                                <td>{{ item.start_time.strftime("%Y-%m-%d %H:%M") }}</td>
+                                <td>{{ item.end_time.strftime("%Y-%m-%d %H:%M") }}</td>
+                                <td class="reason-preview">
+                                    {% if item.reason|length > 18 %}
+                                        {{ item.reason[:18] }}...
+                                        <a class="ms-1 small" href="{{ url_for('main.admin_leave_detail', leave_id=item.id) }}">查看详情</a>
+                                    {% else %}
+                                        {{ item.reason }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="status-badge {% if item.status == '待审批' %}status-pending{% elif item.status == '通过' %}status-approved{% else %}status-rejected{% endif %}">{{ item.status }}</span>
+                                </td>
+                                <td>{{ item.created_at.strftime("%Y-%m-%d %H:%M:%S") if item.created_at else "-" }}</td>
+                                <td>{{ item.reviewed_at.strftime("%Y-%m-%d %H:%M:%S") if item.reviewed_at else "-" }}</td>
+                                <td>{{ item.reviewed_by or "-" }}</td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                        <a class="btn btn-outline-secondary btn-sm rounded-pill px-3" href="{{ url_for('main.admin_leave_detail', leave_id=item.id) }}">详情</a>
+                                        {% if item.status == '待审批' %}
+                                            <form method="post" action="{{ url_for('main.admin_leave_review') }}" onsubmit="return confirm('确认通过该请假申请吗？');">
+                                                <input type="hidden" name="leave_id" value="{{ item.id }}">
+                                                <input type="hidden" name="action" value="approve">
+                                                <button class="btn btn-success btn-sm rounded-pill px-3" type="submit">通过</button>
+                                            </form>
+                                            <form method="post" action="{{ url_for('main.admin_leave_review') }}" onsubmit="return confirm('确认拒绝该请假申请吗？');">
+                                                <input type="hidden" name="leave_id" value="{{ item.id }}">
+                                                <input type="hidden" name="action" value="reject">
+                                                <button class="btn btn-outline-danger btn-sm rounded-pill px-3" type="submit">拒绝</button>
+                                            </form>
+                                        {% else %}
+                                            <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" type="button" disabled>已审批</button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">当前筛选条件下没有请假记录。</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

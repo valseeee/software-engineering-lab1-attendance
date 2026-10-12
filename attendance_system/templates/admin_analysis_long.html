@@ -1,0 +1,216 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}员工行为分析（长期）{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">长期分析</div>
+        <h1 class="page-title">员工行为分析（长期）</h1>
+        <p class="page-subtitle">基于员工历史打卡记录生成结构化长期分析结果，并将报告入库。筛选区、生成区和结果区做了更清晰的层次划分。</p>
+    </div>
+</div>
+
+<div class="panel-card form-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">筛选条件</h2>
+                <div class="panel-caption">支持按工号、岗位、入职时间和排序方式过滤</div>
+            </div>
+        </div>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" for="employee_id">工号</label>
+                <input class="form-control" id="employee_id" name="employee_id" type="text" value="{{ filters.employee_id }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="position">工作岗位</label>
+                <input class="form-control" id="position" name="position" type="text" value="{{ filters.position }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="hire_date">入职时间</label>
+                <input class="form-control" id="hire_date" name="hire_date" type="date" value="{{ filters.hire_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="sort">排序</label>
+                <select class="form-select" id="sort" name="sort">
+                    {% for value, label in sort_options %}
+                        <option value="{{ value }}" {% if filters.sort == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary rounded-pill px-4" type="submit">应用筛选</button>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.admin_analysis_long') }}">重置</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">长期分析生成</h2>
+                <div class="panel-caption">按当前筛选结果显示员工，支持逐个生成分析</div>
+            </div>
+        </div>
+        {% if employees %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>岗位</th>
+                            <th>入职时间</th>
+                            <th class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in employees %}
+                            <tr>
+                                <td>{{ employee.employee_id }}</td>
+                                <td>{{ employee.name }}</td>
+                                <td>{{ employee.position or "未设置" }}</td>
+                                <td>{{ employee.hire_date.strftime("%Y-%m-%d") }}</td>
+                                <td class="text-end">
+                                    <form method="post" action="{{ url_for('main.admin_analysis_long_generate') }}">
+                                        <input type="hidden" name="employee_id" value="{{ employee.employee_id }}">
+                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3" type="submit">生成长期分析</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">当前筛选条件下没有可生成分析的员工。</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">长期分析结果</h2>
+                <div class="panel-caption">共 {{ analyses|length }} 条记录</div>
+            </div>
+        </div>
+        {% if analyses %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>性格</th>
+                            <th>工作积极度</th>
+                            <th>健康度</th>
+                            <th>报告生成时间</th>
+                            <th class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in analyses %}
+                            <tr class="{% if selected_analysis and selected_analysis.id == item.id %}table-active{% endif %}">
+                                <td>{{ item.employee_id }}</td>
+                                <td>{{ item.employee.name if item.employee else "-" }}</td>
+                                <td>{{ item.personality }}</td>
+                                <td><span class="score-pill">{{ item.motivation }}</span></td>
+                                <td><span class="score-pill">{{ item.health }}</span></td>
+                                <td>{{ item.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                                <td class="text-end d-flex justify-content-end gap-2 flex-wrap">
+                                    <a class="btn btn-sm btn-outline-primary rounded-pill px-3" href="{{ url_for('main.admin_analysis_long', employee_id=filters.employee_id, position=filters.position, hire_date=filters.hire_date, sort=filters.sort, analysis_id=item.id) }}">查看趋势</a>
+                                    <a class="btn btn-sm btn-outline-secondary rounded-pill px-3" href="{{ url_for('main.admin_analysis_detail', analysis_id=item.id) }}">报告详情</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">暂无长期分析结果，可先为员工生成长期分析。</div>
+        {% endif %}
+    </div>
+</div>
+
+{% if selected_analysis %}
+    <div class="panel-card">
+        <div class="card-body p-4">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">长期趋势图表</h2>
+                    <div class="panel-caption">
+                        {{ selected_analysis.employee_id }} - {{ selected_analysis.employee.name if selected_analysis.employee else "-" }}，基于全部历史打卡记录生成
+                    </div>
+                </div>
+            </div>
+            <div class="inline-stat-grid">
+                <div class="info-tile"><div class="label">工号</div><div class="value">{{ selected_analysis.employee_id }}</div></div>
+                <div class="info-tile"><div class="label">姓名</div><div class="value">{{ selected_analysis.employee.name if selected_analysis.employee else "-" }}</div></div>
+                <div class="info-tile"><div class="label">岗位</div><div class="value">{{ selected_analysis.employee.position if selected_analysis.employee else "-" }}</div></div>
+            </div>
+        </div>
+    </div>
+
+    {% if chart_data %}
+        <div class="panel-card">
+            <div class="card-body p-4">
+                <div class="panel-header"><h2 class="panel-title">积极度折线图</h2></div>
+                <canvas id="longMotivationChart" height="160"></canvas>
+            </div>
+        </div>
+
+        <div class="panel-card">
+            <div class="card-body p-4">
+                <div class="panel-header"><h2 class="panel-title">健康度柱状图</h2></div>
+                <canvas id="longHealthChart" height="160"></canvas>
+            </div>
+        </div>
+    {% else %}
+        <div class="soft-empty">当前员工暂无可用于长期趋势图的打卡数据。</div>
+    {% endif %}
+{% endif %}
+
+{% if selected_analysis and chart_data %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const longChartLabels = {{ chart_data.labels|tojson }};
+        const longMotivationValues = {{ chart_data.motivation_values|tojson }};
+        const longHealthValues = {{ chart_data.health_values|tojson }};
+
+        new Chart(document.getElementById("longMotivationChart"), {
+            type: "line",
+            data: {
+                labels: longChartLabels,
+                datasets: [{
+                    label: "积极度",
+                    data: longMotivationValues,
+                    borderColor: "#14532d",
+                    backgroundColor: "rgba(20, 83, 45, 0.12)",
+                    tension: 0.35,
+                    fill: true
+                }]
+            },
+            options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+        });
+
+        new Chart(document.getElementById("longHealthChart"), {
+            type: "bar",
+            data: {
+                labels: longChartLabels,
+                datasets: [{
+                    label: "健康度",
+                    data: longHealthValues,
+                    backgroundColor: "#c96f28"
+                }]
+            },
+            options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+        });
+    </script>
+{% endif %}
+{% endblock %}

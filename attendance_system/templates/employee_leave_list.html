@@ -1,0 +1,105 @@
+{% extends "employee_layout.html" %}
+
+{% block title %}我的请假记录{% endblock %}
+
+{% block employee_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">我的请假记录</div>
+        <h1 class="page-title">审批状态与历史申请</h1>
+        <p class="page-subtitle">查看自己提交过的请假申请、审批进度和审核结果。筛选条件保持轻量，状态展示更直观。</p>
+    </div>
+</div>
+
+<div class="panel-card form-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">筛选条件</h2>
+                <div class="panel-caption">支持按状态和时间范围快速筛选</div>
+            </div>
+        </div>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label" for="status">请假状态</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">全部状态</option>
+                    {% for status in status_options %}
+                        <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="start_date_from">开始时间范围</label>
+                <input class="form-control" id="start_date_from" name="start_date_from" type="date" value="{{ filters.start_date_from }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="end_date_to">结束时间范围</label>
+                <input class="form-control" id="end_date_to" name="end_date_to" type="date" value="{{ filters.end_date_to }}">
+            </div>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary rounded-pill px-4" type="submit">应用筛选</button>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.employee_leave_list') }}">重置</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">请假申请列表</h2>
+                <div class="panel-caption">共 {{ leave_requests|length }} 条记录</div>
+            </div>
+        </div>
+
+        {% if leave_requests %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>请假开始时间</th>
+                            <th>请假结束时间</th>
+                            <th>请假理由</th>
+                            <th>当前状态</th>
+                            <th>提交时间</th>
+                            <th>审核时间</th>
+                            <th>审核人</th>
+                            <th class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in leave_requests %}
+                            <tr>
+                                <td>{{ item.start_time.strftime("%Y-%m-%d %H:%M") }}</td>
+                                <td>{{ item.end_time.strftime("%Y-%m-%d %H:%M") }}</td>
+                                <td class="reason-preview">
+                                    {% if item.reason|length > 22 %}
+                                        {{ item.reason[:22] }}...
+                                    {% else %}
+                                        {{ item.reason }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="status-badge {% if item.status == '待审批' %}status-pending{% elif item.status == '通过' %}status-approved{% else %}status-rejected{% endif %}">
+                                        {{ item.status }}
+                                    </span>
+                                </td>
+                                <td>{{ item.created_at.strftime("%Y-%m-%d %H:%M:%S") if item.created_at else "-" }}</td>
+                                <td>{{ item.reviewed_at.strftime("%Y-%m-%d %H:%M:%S") if item.reviewed_at else "-" }}</td>
+                                <td>{{ item.reviewed_by or "-" }}</td>
+                                <td class="text-end">
+                                    <a class="btn btn-outline-secondary btn-sm rounded-pill px-3" href="{{ url_for('main.employee_leave_detail', leave_id=item.id) }}">查看详情</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">当前筛选条件下没有请假记录。</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

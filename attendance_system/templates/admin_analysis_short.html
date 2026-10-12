@@ -1,0 +1,216 @@
+{% extends "admin_layout.html" %}
+
+{% block title %}短期行为分析{% endblock %}
+
+{% block admin_content %}
+<div class="hero-card">
+    <div class="card-body p-4 p-md-5">
+        <div class="page-kicker">短期分析</div>
+        <h1 class="page-title">短期行为分析</h1>
+        <p class="page-subtitle">仅当员工最近有效打卡天数不少于 7 天时，系统才允许生成短期分析报告。右侧重点突出报告与图表区。</p>
+    </div>
+</div>
+
+<div class="panel-card form-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">筛选条件</h2>
+                <div class="panel-caption">支持按工号和姓名过滤员工及分析结果</div>
+            </div>
+        </div>
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label" for="employee_id">工号</label>
+                <input class="form-control" id="employee_id" name="employee_id" type="text" value="{{ filters.employee_id }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="name">姓名</label>
+                <input class="form-control" id="name" name="name" type="text" value="{{ filters.name }}">
+            </div>
+            <div class="col-md-4 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary rounded-pill px-4" type="submit">应用筛选</button>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="{{ url_for('main.admin_analysis_short') }}">重置</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="panel-card">
+    <div class="card-body p-4">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">短期分析生成</h2>
+                <div class="panel-caption">最近 7 天打卡达标后才可生成</div>
+            </div>
+        </div>
+        {% if employee_cards %}
+            <div class="table-responsive">
+                <table class="table data-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>岗位</th>
+                            <th>最近有效天数</th>
+                            <th class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in employee_cards %}
+                            <tr>
+                                <td>{{ item.employee.employee_id }}</td>
+                                <td>{{ item.employee.name }}</td>
+                                <td>{{ item.employee.position or "未设置" }}</td>
+                                <td>
+                                    <span class="status-badge {% if item.can_analyze %}status-approved{% else %}status-rejected{% endif %}">{{ item.recent_day_count }} 天</span>
+                                </td>
+                                <td class="text-end">
+                                    {% if item.can_analyze %}
+                                        <form method="post" action="{{ url_for('main.admin_analysis_short_generate') }}">
+                                            <input type="hidden" name="employee_id" value="{{ item.employee.employee_id }}">
+                                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" type="submit">生成短期分析</button>
+                                        </form>
+                                    {% else %}
+                                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-3" type="button" disabled>未满 7 天</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="soft-empty">当前筛选条件下没有员工记录。</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="panel-card h-100">
+            <div class="card-body p-4">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">短期分析结果</h2>
+                        <div class="panel-caption">共 {{ analyses|length }} 条</div>
+                    </div>
+                </div>
+                {% if analyses %}
+                    <div class="list-group list-group-flush gap-2">
+                        {% for item in analyses %}
+                            <a class="list-group-item rounded-4 border {% if selected_analysis and selected_analysis.id == item.id %}active{% endif %}" href="{{ url_for('main.admin_analysis_short', employee_id=filters.employee_id, name=filters.name, analysis_id=item.id) }}">
+                                <div class="d-flex justify-content-between align-items-start gap-3">
+                                    <div>
+                                        <div class="fw-semibold">{{ item.employee_id }} - {{ item.employee.name if item.employee else "-" }}</div>
+                                        <div class="small {% if selected_analysis and selected_analysis.id == item.id %}text-white-50{% else %}text-muted{% endif %}">{{ item.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</div>
+                                    </div>
+                                    <span class="status-badge {% if selected_analysis and selected_analysis.id == item.id %}status-approved{% else %}status-pending{% endif %}">short</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="soft-empty">暂无短期分析结果。</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        {% if selected_analysis %}
+            <div class="panel-card">
+                <div class="card-body p-4">
+                    <div class="inline-stat-grid">
+                        <div class="info-tile"><div class="label">工号</div><div class="value">{{ selected_analysis.employee_id }}</div></div>
+                        <div class="info-tile"><div class="label">姓名</div><div class="value">{{ selected_analysis.employee.name if selected_analysis.employee else "-" }}</div></div>
+                        <div class="info-tile"><div class="label">岗位</div><div class="value">{{ selected_analysis.employee.position if selected_analysis.employee else "-" }}</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="metric-card h-100">
+                        <div class="card-body p-4">
+                            <div class="metric-label">积极度</div>
+                            <div class="metric-value">{{ selected_analysis.motivation }}</div>
+                            <div class="metric-hint">0-100 分标准化结果</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="metric-card h-100">
+                        <div class="card-body p-4">
+                            <div class="metric-label">健康度</div>
+                            <div class="metric-value">{{ selected_analysis.health }}</div>
+                            <div class="metric-hint">0-100 分标准化结果</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="card-body p-4">
+                    <div class="panel-header"><h2 class="panel-title">报告文本</h2></div>
+                    <div class="report-block">{{ selected_analysis.report_text }}</div>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="card-body p-4">
+                    <div class="panel-header"><h2 class="panel-title">积极度图表</h2></div>
+                    <canvas id="motivationChart" height="160"></canvas>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="card-body p-4">
+                    <div class="panel-header"><h2 class="panel-title">健康度图表</h2></div>
+                    <canvas id="healthChart" height="160"></canvas>
+                </div>
+            </div>
+        {% else %}
+            <div class="soft-empty">请选择一条短期分析结果查看报告和图表。</div>
+        {% endif %}
+    </div>
+</div>
+
+{% if selected_analysis and chart_data %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const chartLabels = {{ chart_data.labels|tojson }};
+        const motivationValues = {{ chart_data.motivation_values|tojson }};
+        const healthValues = {{ chart_data.health_values|tojson }};
+
+        new Chart(document.getElementById("motivationChart"), {
+            type: "line",
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: "积极度",
+                    data: motivationValues,
+                    borderColor: "#14532d",
+                    backgroundColor: "rgba(20, 83, 45, 0.12)",
+                    tension: 0.35,
+                    fill: true
+                }]
+            },
+            options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+        });
+
+        new Chart(document.getElementById("healthChart"), {
+            type: "bar",
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: "健康度",
+                    data: healthValues,
+                    backgroundColor: "#c96f28"
+                }]
+            },
+            options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+        });
+    </script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}登录{% endblock %}
+
+{% block content %}
+<div class="row g-4 login-shell">
+    <div class="col-lg-7">
+        <div class="hero-card login-hero h-100">
+            <div class="card-body p-4 p-lg-5">
+                <div class="page-kicker">欢迎登录</div>
+                <h1 class="page-title text-white">员工签到与行为分析系统</h1>
+                <p class="page-subtitle text-white-50">保持现有业务流程不变，把登录入口、提示和后续导航体验统一得更清楚一些。管理员与员工都从这里进入各自工作台。</p>
+
+                <div class="login-bullets">
+                    <div class="login-bullet">
+                        <div class="login-bullet-mark">01</div>
+                        <div>
+                            <div class="fw-semibold">管理员登录</div>
+                            <div class="text-white-50 small">使用账号 <code>root</code>，登录后进入管理员后台。</div>
+                        </div>
+                    </div>
+                    <div class="login-bullet">
+                        <div class="login-bullet-mark">02</div>
+                        <div>
+                            <div class="fw-semibold">员工登录</div>
+                            <div class="text-white-50 small">使用 9 位工号和个人密码，登录后进入员工工作台。</div>
+                        </div>
+                    </div>
+                    <div class="login-bullet">
+                        <div class="login-bullet-mark">03</div>
+                        <div>
+                            <div class="fw-semibold">统一入口</div>
+                            <div class="text-white-50 small">后续打卡、请假、资料查看、审核与分析模块都在登录后分角色展示。</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="surface-card form-card h-100">
+            <div class="card-body p-4 p-lg-5 d-flex flex-column justify-content-center">
+                <div class="page-kicker">账号验证</div>
+                <h2 class="page-title h3">进入系统</h2>
+                <p class="page-subtitle mb-4">请输入账号与密码。登录成功后，系统会根据身份自动跳转。</p>
+                <form method="post" class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label" for="username">账号</label>
+                        <input class="form-control" id="username" name="username" type="text" placeholder="管理员 root 或员工 9 位工号" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="password">密码</label>
+                        <input class="form-control" id="password" name="password" type="password" placeholder="请输入登录密码" required>
+                    </div>
+                    <div class="col-12 d-grid mt-2">
+                        <button class="btn btn-primary btn-lg rounded-pill" type="submit">登录并进入工作台</button>
+                    </div>
+                </form>
+                <div class="helper-note mt-4">提示：若员工被标记为离职，系统会拒绝登录。</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
