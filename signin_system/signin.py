@@ -31,12 +31,25 @@ def check_in(
     now: datetime | None = None,
 ) -> dict[str, str]:
     current_time = now or datetime.now()
+    student_id = student_id.strip()
+    name = name.strip()
+    if not student_id or not name:
+        raise ValueError("学号和姓名不能为空")
+
+    records = load_records(store_path)
+    current_date = current_time.strftime("%Y-%m-%d")
+    if any(
+        record["student_id"] == student_id
+        and record["time"].startswith(current_date)
+        for record in records
+    ):
+        raise ValueError("该学号今天已经签到")
+
     record = {
         "student_id": student_id,
         "name": name,
         "time": current_time.strftime("%Y-%m-%d %H:%M:%S"),
     }
-    records = load_records(store_path)
     records.append(record)
     save_records(records, store_path)
     return record
@@ -57,7 +70,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     if args.command == "sign":
-        record = check_in(args.student_id, args.name)
+        try:
+            record = check_in(args.student_id, args.name)
+        except ValueError as error:
+            print(f"签到失败：{error}")
+            raise SystemExit(1) from error
         print(f"签到成功：{record['student_id']} {record['name']} {record['time']}")
         return
 
